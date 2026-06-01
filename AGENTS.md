@@ -1,54 +1,35 @@
-# AGENTS.md
+# AGENTS.md — cf-controller
 
-This repository is designed for long-running coding-agent work. The goal is not to maximize raw code output. 
-The goal is to leave the repo in a state where the next session can continue without guessing.
+Shared startup, DoD, and session rules: **`agent-contract-master/AGENTS.md`** (multi-root workspace).
 
-## Startup Workflow
+Work only in this repo (`cf-controller` root) for git, `feature_list.json`, and `claude-progress.md`.
 
-Before writing code:
+## Project
 
-1. Confirm the working directory with `pwd`.
-2. Read `claude-progress.md` for the latest verified state and next step.
-3. Read `feature_list.json` and choose the highest-priority unfinished feature.
-4. Review recent commits with `git log --oneline -5`.
-5. Run `./init.sh`.
-6. Run the required smoke or end-to-end verification before starting new work.
+**CF-01 — Cloudflare mesh network implementation** (see `feature_list.json`).
 
-If baseline verification is already failing, fix that first. Do not stack new
-feature work on top of a broken starting state.
+This repo owns Cloudflare / controller automation and related infra (for example `terraform/`). It does not own homelab Proxmox, FortiGate, or C9300 design — see **`proxmox/AGENTS.md`**.
 
-## Working Rules
+## Layout
 
-- Work on one feature at a time.
-- Do not mark a feature complete just because code was added.
-- Keep changes within the selected feature scope unless a blocker forces a
-  narrow supporting fix.
-- Do not silently change verification rules during implementation.
-- Prefer durable repo artifacts over chat summaries.
+| Path | Purpose |
+|------|---------|
+| `terraform/` | Infra definitions (for example `sg-hl-cfvm/`) |
+| `init.sh` | Deps + baseline verification for this repo |
+| `feature_list.json` | Feature backlog and evidence |
+| `claude-progress.md` | Session state (create when work starts) |
 
-## Required Artifacts
+## Verification
 
-- `feature_list.json`: source of truth for feature state
-- `claude-progress.md`: session log and current verified status
-- `init.sh`: standard startup and verification path
-- `session-handoff.md`: optional compact handoff for larger sessions
+- Run `./init.sh` from this repo root after dependency or layout changes
+- Record verification commands and results in `feature_list.json` / `claude-progress.md`
+- Do not mark features complete without ran checks
 
-## Definition Of Done
+## Secrets
 
-A feature is done only when all of the following are true:
+Follow `agent-contract-master/docs/secrets-baseline.md`. Add `docs/1password-secrets.md` here when Cloudflare/API tokens are wired (item names only, no values).
 
-- the target behavior is implemented
-- the required verification actually ran
-- evidence is recorded in `feature_list.json` or `claude-progress.md`
-- the repository remains restartable from the standard startup path
+## Do not
 
-## End Of Session
-
-Before ending a session:
-
-1. Update `claude-progress.md`.
-2. Update `feature_list.json`.
-3. Record any unresolved risk or blocker.
-4. Commit with a descriptive message once the work is in a safe state.
-5. Leave the repo clean enough for the next session to run `./init.sh`
-   immediately.
+- Apply homelab VLAN / Proxmox / FortiGate rules from the proxmox repo unless explicitly cross-cutting
+- Commit API tokens, tunnel secrets, or `.env` files
