@@ -1,0 +1,2 @@
+# Copy to terraform.tfvars (gitignored). Secrets and IDs: use ./tf.sh (TF_VAR_* from 1Password).
+domain = "d3hl.site"
