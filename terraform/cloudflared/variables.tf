@@ -6,22 +6,22 @@ variable "SERVICE_ACCOUNT_TOKEN" {
 variable "CLOUDFLARE_API_TOKEN" {
   type        = string
   description = "API token for the Cloudflare API"
-  default = ""
+  default     = ""
 }
 
 variable "account_id" {
-  type        = string
+  type    = string
   default = ""
 }
 variable "zone_id" {
-  type        = string  
+  type    = string
   default = ""
 }
 variable "domain" {
-  type        = string
+  type    = string
   default = ""
 }
 variable "wan_ip" {
-  type        = string
+  type    = string
   default = ""
 }

@@ -1,14 +1,101 @@
 {
-    "project": "CF-01",
-    "description": "Cloudflare Mesh Network Implementation",
-    "features": [
-      {
-        "id": "",
-        "name": "",
-        "description": "",
-        "status": "",
-        "evidence": "",
-        "testedAt": ""
-      }
-    ]
-  }
+  "project": "CF-01",
+  "description": "Cloudflare Mesh Network Implementation",
+  "activeFeature": "CF-01-TF-BASELINE",
+  "features": [
+    {
+      "id": "CF-01-HARNESS",
+      "priority": 0,
+      "name": "Agent harness repair",
+      "description": "Make this repo restartable for coding agents with local instructions, feature state, Terraform-only baseline verification, and session handoff state.",
+      "status": "completed",
+      "dependencies": [],
+      "doneCriteria": [
+        "AGENTS.md documents local startup workflow, scope, verification, definition of done, and end-of-session routine.",
+        "feature_list.json contains concrete feature entries with status, dependencies, verification, evidence, and nextStep fields.",
+        "claude-progress.md and session-handoff.md contain restartable state for the next session.",
+        "init.sh runs Terraform fmt, init without backend, and validate for terraform/cloudflared without requiring live Cloudflare credentials."
+      ],
+      "verification": [
+        "./init.sh",
+        "node /home/d3/.agents/skills/harness-creator/scripts/validate-harness.mjs --target /home/d3/Github/cf-controller",
+        "git status --short"
+      ],
+      "evidence": [
+        {
+          "date": "2026-06-02",
+          "command": "./init.sh",
+          "result": "pre-repair failed: attempted to create .venv from obsolete Python workflow before Terraform verification."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "./init.sh",
+          "result": "failed after repair on terraform fmt for terraform/cloudflared/variables.tf; fixed formatting as required baseline support."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "./init.sh",
+          "result": "passed with Terraform v1.15.5: fmt -check -diff, init -backend=false -input=false, and validate all succeeded."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "node /home/d3/.agents/skills/harness-creator/scripts/validate-harness.mjs --target /home/d3/Github/cf-controller",
+          "result": "passed; harness score 92/100, bottleneck state due validator preferring progress.md while this repo uses claude-progress.md."
+        }
+      ],
+      "testedAt": "2026-06-02",
+      "nextStep": "Complete. Next session should start with CF-01-TF-BASELINE."
+    },
+    {
+      "id": "CF-01-TF-BASELINE",
+      "priority": 1,
+      "name": "Cloudflare Terraform baseline",
+      "description": "Keep terraform/cloudflared configuration formatted, initialized without backend for static validation, and valid before feature work.",
+      "status": "pending",
+      "dependencies": [
+        "CF-01-HARNESS"
+      ],
+      "doneCriteria": [
+        "terraform/cloudflared passes fmt -check -diff.",
+        "terraform/cloudflared passes terraform init -backend=false -input=false.",
+        "terraform/cloudflared passes terraform validate.",
+        "Any live plan is run separately through terraform/cloudflared/tf.sh plan with 1Password and Cloudflare credentials available."
+      ],
+      "verification": [
+        "./init.sh",
+        "terraform/cloudflared/tf.sh plan"
+      ],
+      "evidence": [
+        {
+          "date": "2026-06-02",
+          "command": "./init.sh",
+          "result": "passed after formatting terraform/cloudflared/variables.tf."
+        }
+      ],
+      "testedAt": "",
+      "nextStep": "Inspect whether provider configuration or live plan behavior needs a focused follow-up; keep static ./init.sh as the default baseline."
+    },
+    {
+      "id": "CF-01-SECRETS-DOCS",
+      "priority": 2,
+      "name": "Cloudflare secret references documentation",
+      "description": "Document Cloudflare and 1Password item references by name/path only, without committing plaintext secret values.",
+      "status": "pending",
+      "dependencies": [
+        "CF-01-HARNESS"
+      ],
+      "doneCriteria": [
+        "Cloudflare/API secret requirements are documented with item names or op:// paths only.",
+        "No plaintext token, account secret, tunnel secret, or .env file is committed.",
+        "Verification commands for secret-backed workflows are documented separately from static init verification."
+      ],
+      "verification": [
+        "rg -n \"(token|secret|password|credential)\" docs terraform README.md AGENTS.md",
+        "./init.sh"
+      ],
+      "evidence": [],
+      "testedAt": "",
+      "nextStep": "Create docs/1password-secrets.md only when Cloudflare token references are intentionally wired."
+    }
+  ]
+}
