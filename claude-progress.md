@@ -6,6 +6,8 @@ Last Updated: 2026-06-02
 
 The repo is a Cloudflare/controller Terraform project. `CF-01-HARNESS` is complete and the next feature is `CF-01-TF-BASELINE`.
 
+`CF-01-MULTI-AGENT-CLOUDFLARE` is complete. Cloudflare/Terraform multi-agent work now follows `docs/multi-agent-cloudflare-contract.md`: Codex plans and approves, Composer validates/debates/implements, and DeepSeek tests/verifies before handoff back to Codex.
+
 Pre-repair baseline verification was attempted with `./init.sh` on 2026-06-02 and failed before Terraform checks because the old script followed an obsolete Python app workflow and attempted to create `.venv`.
 
 The repaired `./init.sh` now runs Terraform-only static verification for `terraform/cloudflared`: `fmt -check -diff`, `init -backend=false -input=false`, and `validate`.
@@ -24,6 +26,12 @@ Next objective: start `CF-01-TF-BASELINE` and inspect whether provider configura
 | 2026-06-02 | `./init.sh` | First repaired run failed on `terraform fmt -check -diff`; applied the reported formatting diff to `terraform/cloudflared/variables.tf`. |
 | 2026-06-02 | `./init.sh` | Passed with Terraform v1.15.5: fmt, init without backend, and validate succeeded. |
 | 2026-06-02 | `node /home/d3/.agents/skills/harness-creator/scripts/validate-harness.mjs --target /home/d3/Github/cf-controller` | Passed with 92/100; remaining state deduction is the generic validator expecting `progress.md` while this repo uses `claude-progress.md`. |
+| 2026-06-02 | `./init.sh` | Passed after adding `docs/multi-agent-cloudflare-contract.md`; sandboxed run required escalation for Terraform registry access. |
+| 2026-06-02 | `terraform -chdir=terraform/cloudflared fmt -check -diff` | Passed. |
+| 2026-06-02 | `terraform -chdir=terraform/cloudflared init -backend=false -input=false` | Passed with escalation after sandboxed DNS access to `registry.terraform.io` was blocked. |
+| 2026-06-02 | `terraform -chdir=terraform/cloudflared validate` | Passed with escalation after sandboxed provider plugin loading failed. |
+| 2026-06-02 | `python -m json.tool feature_list.json` | Passed after adding `CF-01-MULTI-AGENT-CLOUDFLARE`. |
+| 2026-06-02 | `rg` changed-file plaintext secret scan | No matches. |
 
 ## Files
 
@@ -31,6 +39,7 @@ Next objective: start `CF-01-TF-BASELINE` and inspect whether provider configura
 - `feature_list.json` - CF-01 feature state and evidence.
 - `init.sh` - Terraform-only baseline verification.
 - `session-handoff.md` - restart markers and next-session template.
+- `docs/multi-agent-cloudflare-contract.md` - Codex/Composer/DeepSeek ownership model for Cloudflare/Terraform work.
 - `terraform/cloudflared/variables.tf` - formatting corrected so `terraform fmt -check -diff` passes.
 
 ## Blockers

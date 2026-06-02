@@ -47,6 +47,64 @@
       "nextStep": "Complete. Next session should start with CF-01-TF-BASELINE."
     },
     {
+      "id": "CF-01-MULTI-AGENT-CLOUDFLARE",
+      "priority": 0,
+      "name": "Cloudflare multi-agent assignment",
+      "description": "Document role ownership for Cloudflare/Terraform work: Codex plans and approves, Composer validates/debates/implements, and DeepSeek tests/verifies before handing back to Codex.",
+      "status": "completed",
+      "dependencies": [
+        "CF-01-HARNESS"
+      ],
+      "doneCriteria": [
+        "docs/multi-agent-cloudflare-contract.md defines Codex, Composer, and DeepSeek ownership for Cloudflare/Terraform work.",
+        "AGENTS.md points agents to the Cloudflare multi-agent contract.",
+        "The assignment preserves ./init.sh as the non-credentialed baseline gate and keeps live plan/apply work explicitly gated.",
+        "No plaintext Cloudflare, 1Password, tfvars, state, or plan artifact content is added as part of the assignment."
+      ],
+      "verification": [
+        "./init.sh",
+        "terraform -chdir=terraform/cloudflared fmt -check -diff",
+        "terraform -chdir=terraform/cloudflared init -backend=false -input=false",
+        "terraform -chdir=terraform/cloudflared validate",
+        "python -m json.tool feature_list.json",
+        "rg -n \"(sk-[A-Za-z0-9]|ghp_[A-Za-z0-9]|xox[baprs]-|AKIA[0-9A-Z]{16}|BEGIN (RSA|OPENSSH|EC) PRIVATE KEY|password\\s*[:=]|token\\s*[:=]|secret\\s*[:=]|credential\\s*[:=])\" AGENTS.md feature_list.json claude-progress.md session-handoff.md docs/multi-agent-cloudflare-contract.md"
+      ],
+      "evidence": [
+        {
+          "date": "2026-06-02",
+          "command": "./init.sh",
+          "result": "passed after adding Cloudflare multi-agent assignment documentation; sandboxed run required escalation for Terraform registry access."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "terraform -chdir=terraform/cloudflared fmt -check -diff",
+          "result": "passed."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "terraform -chdir=terraform/cloudflared init -backend=false -input=false",
+          "result": "passed with escalation after sandboxed DNS access to registry.terraform.io was blocked."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "terraform -chdir=terraform/cloudflared validate",
+          "result": "passed with escalation after sandboxed provider plugin loading failed."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "python -m json.tool feature_list.json",
+          "result": "passed."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "rg changed-file plaintext secret scan",
+          "result": "no matches."
+        }
+      ],
+      "testedAt": "2026-06-02",
+      "nextStep": "Complete. Continue with CF-01-TF-BASELINE under the documented Codex/Composer/DeepSeek ownership model."
+    },
+    {
       "id": "CF-01-TF-BASELINE",
       "priority": 1,
       "name": "Cloudflare Terraform baseline",

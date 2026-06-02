@@ -36,6 +36,7 @@ Before writing code:
 - One feature at a time.
 - Stay in scope for the selected `feature_list.json` item.
 - Keep Cloudflare work here and Proxmox/homelab network work in the proxmox repo.
+- For multi-agent Cloudflare work, follow `docs/multi-agent-cloudflare-contract.md`: Codex plans and approves, Composer reviews/implements, and DeepSeek verifies before handoff back to Codex.
 - A narrow supporting fix is allowed only when it is required for verification or restartability.
 - Do not silently change verification rules to make a feature look done.
 
