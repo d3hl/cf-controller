@@ -1,7 +1,7 @@
 {
   "project": "CF-01",
   "description": "Cloudflare Mesh Network Implementation",
-  "activeFeature": "CF-01-TF-BASELINE",
+  "activeFeature": "CF-01-MESH-S2S-TERRAFORM",
   "features": [
     {
       "id": "CF-01-HARNESS",
@@ -109,7 +109,7 @@
       "priority": 1,
       "name": "Cloudflare Terraform baseline",
       "description": "Keep terraform/cloudflared configuration formatted, initialized without backend for static validation, and valid before feature work.",
-      "status": "pending",
+      "status": "completed",
       "dependencies": [
         "CF-01-HARNESS"
       ],
@@ -128,14 +128,201 @@
           "date": "2026-06-02",
           "command": "./init.sh",
           "result": "passed after formatting terraform/cloudflared/variables.tf."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "./init.sh",
+          "result": "passed with Terraform v1.15.5 after Terraform registry network escalation; fmt, init without backend, and validate succeeded."
         }
       ],
-      "testedAt": "",
-      "nextStep": "Inspect whether provider configuration or live plan behavior needs a focused follow-up; keep static ./init.sh as the default baseline."
+      "testedAt": "2026-06-02",
+      "nextStep": "Complete. Continue with CF-01-MESH-S2S-TERRAFORM."
+    },
+    {
+      "id": "CF-01-MESH-S2S-PLAN",
+      "priority": 2,
+      "name": "Cloudflare mesh site-to-site and reverse proxy plan",
+      "description": "Plan Cloudflare private routing between Homelab Proxmox SDN networks and Office VLAN 101, plus Cloudflare Tunnel reverse proxy for selected local resources.",
+      "status": "completed",
+      "dependencies": [
+        "CF-01-HARNESS",
+        "CF-01-MULTI-AGENT-CLOUDFLARE",
+        "CF-01-TF-BASELINE"
+      ],
+      "doneCriteria": [
+        "docs/cloudflare-mesh-network-plan.md records Site A Homelab routes for vmgmt, vsvc, and vlab.",
+        "docs/cloudflare-mesh-network-plan.md records Site B Office VLAN 101 route.",
+        "The plan uses Context7 Cloudflare Terraform provider resource names for tunnels, private routes, virtual networks, tunnel config ingress, hostname routes, and DNS records.",
+        "The plan separates non-live static validation from credentialed plan/apply work and records missing implementation inputs."
+      ],
+      "verification": [
+        "python -m json.tool feature_list.json",
+        "rg -n \"cloudflare_zero_trust_tunnel_cloudflared_route|cloudflare_zero_trust_tunnel_cloudflared_config|10.203.1.0/24|10.10.10.0/24|10.10.30.0/24|10.10.50.0/24\" docs/cloudflare-mesh-network-plan.md",
+        "./init.sh"
+      ],
+      "evidence": [
+        {
+          "date": "2026-06-02",
+          "command": "Context7 query for /cloudflare/terraform-provider-cloudflare",
+          "result": "confirmed provider-v5 resources for cloudflared tunnels, tunnel config ingress, private network CIDR routes, virtual networks, hostname routes, and DNS records."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "docs/cloudflare-mesh-network-plan.md",
+          "result": "created with Homelab/Office route plan, reverse proxy input matrix, Terraform resource shape, validation gates, and open risks."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "python -m json.tool feature_list.json",
+          "result": "passed."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "rg plan coverage check",
+          "result": "found Cloudflare private route/config resources and all requested Homelab/Office CIDRs in docs/cloudflare-mesh-network-plan.md."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "./init.sh",
+          "result": "passed after creating the mesh network plan; sandboxed run required Terraform registry network escalation."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "rg changed-file plaintext secret scan",
+          "result": "no matches."
+        }
+      ],
+      "testedAt": "2026-06-02",
+      "nextStep": "Complete. Composer can implement CF-01-MESH-S2S-TERRAFORM after tunnel IDs, virtual network choice, and reverse-proxy hostnames/origins are supplied."
+    },
+    {
+      "id": "CF-01-MESH-S2S-TERRAFORM",
+      "priority": 4,
+      "name": "Cloudflare mesh site-to-site Terraform implementation",
+      "description": "Implement Cloudflare Terraform resources for Homelab and Office private network routes once tunnel IDs, virtual network selection, and local routing assumptions are confirmed.",
+      "status": "in_progress",
+      "dependencies": [
+        "CF-01-MESH-S2S-PLAN",
+        "CF-01-HCP-TERRAFORM-PREP"
+      ],
+      "doneCriteria": [
+        "Terraform declares or imports the Homelab and Office Cloudflare tunnel references without committing tunnel secrets.",
+        "Terraform declares private routes for 10.10.10.0/24, 10.10.30.0/24, 10.10.50.0/24, and 10.203.1.0/24.",
+        "A credentialed Terraform plan is reviewed by Composer and verified by DeepSeek before Codex final approval.",
+        "No terraform apply is run without explicit user approval."
+      ],
+      "verification": [
+        "./init.sh",
+        "terraform -chdir=terraform/cloudflared fmt -check -diff",
+        "terraform -chdir=terraform/cloudflared validate",
+        "terraform/cloudflared/tf.sh plan"
+      ],
+      "evidence": [
+        {
+          "date": "2026-06-02",
+          "command": "terraform/cloudflared/mesh.tf",
+          "result": "added disabled-by-default Cloudflare private-route scaffold for Homelab vmgmt, vsvc, vlab, and Office VLAN 101."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "terraform/cloudflared/variables.tf",
+          "result": "added input variables for route enablement, tunnel IDs, optional virtual network, vlab route scope, and reverse-proxy ingress."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "./init.sh",
+          "result": "passed with disabled-by-default mesh route scaffold; no Cloudflare plan or apply was run."
+        }
+      ],
+      "testedAt": "2026-06-02",
+      "nextStep": "Input HCP Terraform organization/workspace variables, Homelab tunnel ID, Office tunnel ID, virtual network decision, and confirmation whether vlab is subnet 10.10.50.0/24 or host-only 10.10.50.50/32."
+    },
+    {
+      "id": "CF-01-HCP-TERRAFORM-PREP",
+      "priority": 3,
+      "name": "HCP Terraform workspace preparation",
+      "description": "Prepare HCP Terraform CLI-driven workspace scaffolding and variable input checklist for the Cloudflare mesh Terraform work without activating remote state yet.",
+      "status": "completed",
+      "dependencies": [
+        "CF-01-MESH-S2S-PLAN"
+      ],
+      "doneCriteria": [
+        "terraform/cloudflared/cloud.tf.example contains a fill-in HCP Terraform cloud block template.",
+        "docs/hcp-terraform-setup.md documents Terraform login/init steps, state migration caution, workspace variables, and sensitive variable handling.",
+        "The HCP setup does not activate remote state or require real organization/workspace values before user input.",
+        "No plaintext Cloudflare, HCP Terraform, 1Password, tfvars, state, or plan artifact content is added."
+      ],
+      "verification": [
+        "python -m json.tool feature_list.json",
+        "terraform -chdir=terraform/cloudflared fmt -check -diff",
+        "terraform -chdir=terraform/cloudflared validate",
+        "rg -n \"cloud \\{|organization = \\\"REPLACE_WITH_HCP_TERRAFORM_ORG\\\"|SERVICE_ACCOUNT_TOKEN|CLOUDFLARE_API_TOKEN|terraform login|terraform -chdir=terraform/cloudflared init\" terraform/cloudflared/cloud.tf.example docs/hcp-terraform-setup.md"
+      ],
+      "evidence": [
+        {
+          "date": "2026-06-02",
+          "command": "Context7 query for HCP Terraform docs",
+          "result": "confirmed cloud block organization/workspace syntax, terraform login/init workflow, and sensitive workspace variable handling."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "terraform/cloudflared/cloud.tf.example and docs/hcp-terraform-setup.md",
+          "result": "created HCP Terraform template and setup guide for user-supplied organization, workspace, and variables."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "./init.sh",
+          "result": "passed after adding HCP Terraform prep; sandboxed run required escalation for Terraform registry access and provider schema validation."
+        }
+      ],
+      "testedAt": "2026-06-02",
+      "nextStep": "Copy cloud.tf.example to cloud.tf after HCP organization/workspace input is supplied, then run terraform login and terraform init."
+    },
+    {
+      "id": "CF-01-REVERSE-PROXY-TERRAFORM",
+      "priority": 5,
+      "name": "Cloudflare Tunnel reverse proxy Terraform implementation",
+      "description": "Publish selected local Homelab resources through Cloudflare Tunnel ingress and DNS after public hostnames and local origins are named.",
+      "status": "in_progress",
+      "dependencies": [
+        "CF-01-MESH-S2S-PLAN",
+        "CF-01-HCP-TERRAFORM-PREP"
+      ],
+      "doneCriteria": [
+        "Reverse-proxy hostnames and local origin services are listed in docs/cloudflare-mesh-network-plan.md or a follow-up input file.",
+        "Terraform tunnel config ingress includes the approved hostnames and a terminal 404 rule.",
+        "DNS changes are reviewed for conflict with existing wildcard and apex records.",
+        "Credentialed plan evidence is recorded before any apply."
+      ],
+      "verification": [
+        "./init.sh",
+        "terraform -chdir=terraform/cloudflared fmt -check -diff",
+        "terraform -chdir=terraform/cloudflared validate",
+        "terraform/cloudflared/tf.sh plan"
+      ],
+      "evidence": [
+        {
+          "date": "2026-06-02",
+          "command": "terraform/cloudflared/mesh.tf",
+          "result": "added disabled-by-default Cloudflare Tunnel config scaffold for Homelab reverse-proxy ingress with automatic terminal 404 rule."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "terraform/cloudflared/terraform.tfvars.example",
+          "result": "added non-secret example inputs for reverse-proxy enablement and ingress entries."
+        },
+        {
+          "date": "2026-06-02",
+          "command": "./init.sh",
+          "result": "passed with disabled-by-default reverse-proxy ingress scaffold; no Cloudflare plan or apply was run."
+        }
+      ],
+      "testedAt": "2026-06-02",
+      "nextStep": "Collect public hostnames, origin service URLs, and Access policy requirements for each local resource."
     },
     {
       "id": "CF-01-SECRETS-DOCS",
-      "priority": 2,
+      "priority": 6,
       "name": "Cloudflare secret references documentation",
       "description": "Document Cloudflare and 1Password item references by name/path only, without committing plaintext secret values.",
       "status": "pending",
