@@ -121,7 +121,8 @@
       ],
       "verification": [
         "./init.sh",
-        "terraform/cloudflared/tf.sh plan"
+        "terraform/cloudflared/tf.sh plan mesh",
+        "terraform/cloudflared/tf.sh plan dns"
       ],
       "evidence": [
         {
@@ -133,10 +134,20 @@
           "date": "2026-06-02",
           "command": "./init.sh",
           "result": "passed with Terraform v1.15.5 after Terraform registry network escalation; fmt, init without backend, and validate succeeded."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "terraform/cloudflared/tf.sh plan",
+          "result": "HCP remote plan succeeded (5 to add: DNS + zone settings when mesh disabled in workspace). Runs: run-z4tZFz3cbrGkduPZ, run-ihz7ExvvnjXDZcry."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "./init.sh",
+          "result": "passed after enable_public_dns and phased tf.sh."
         }
       ],
-      "testedAt": "2026-06-02",
-      "nextStep": "Complete. Continue with CF-01-MESH-S2S-TERRAFORM."
+      "testedAt": "2026-06-03",
+      "nextStep": "Complete. Use ./tf.sh plan mesh|dns for credentialed phased plans."
     },
     {
       "id": "CF-01-MESH-S2S-PLAN",
@@ -190,32 +201,41 @@
           "date": "2026-06-02",
           "command": "rg changed-file plaintext secret scan",
           "result": "no matches."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "docs/cloudflare-mesh-network-plan.md",
+          "result": "updated validation gates for phased ./tf.sh plan mesh then plan dns."
         }
       ],
-      "testedAt": "2026-06-02",
+      "testedAt": "2026-06-03",
       "nextStep": "Complete. Composer can implement CF-01-MESH-S2S-TERRAFORM after tunnel IDs, virtual network choice, and reverse-proxy hostnames/origins are supplied."
     },
     {
       "id": "CF-01-MESH-S2S-TERRAFORM",
       "priority": 4,
       "name": "Cloudflare mesh site-to-site Terraform implementation",
-      "description": "Implement Cloudflare Terraform resources for Homelab and Office private network routes once tunnel IDs, virtual network selection, and local routing assumptions are confirmed.",
+      "description": "Implement Cloudflare private network routes (phase 1) and public DNS/zone settings (phase 2) with phased ./tf.sh mesh|dns. Tunnel UUIDs load from 1Password item cf-zerotrust-d3hl.site via CLI -var.",
       "status": "in_progress",
       "dependencies": [
         "CF-01-MESH-S2S-PLAN",
         "CF-01-HCP-TERRAFORM-PREP"
       ],
       "doneCriteria": [
-        "Terraform declares or imports the Homelab and Office Cloudflare tunnel references without committing tunnel secrets.",
-        "Terraform declares private routes for 10.10.10.0/24, 10.10.30.0/24, 10.10.50.0/24, and 10.203.1.0/24.",
-        "A credentialed Terraform plan is reviewed by Composer and verified by DeepSeek before Codex final approval.",
-        "No terraform apply is run without explicit user approval."
+        "Terraform declares private routes for 10.10.10.0/24, 10.10.30.0/24, 10.10.50.0/24, and 10.203.1.0/24 without committing tunnel secrets.",
+        "Tunnel IDs are supplied via 1Password (cf-zerotrust-d3hl.site: Tunnel sg-hl-mesh, Tunnel sg-corp-mesh) or HCP workspace variables.",
+        "Phased apply: ./tf.sh plan mesh shows 4 to add; after mesh apply, ./tf.sh plan dns shows 5 to add with mesh flags left enabled.",
+        "Public DNS and zone settings are gated by enable_public_dns until phase 2.",
+        "DNS pre-apply review confirms no apex/wildcard A conflict (documented in claude-progress.md).",
+        "Credentialed plans reviewed by Composer and verified by DeepSeek before Codex final approval.",
+        "No terraform apply without explicit user approval."
       ],
       "verification": [
         "./init.sh",
         "terraform -chdir=terraform/cloudflared fmt -check -diff",
         "terraform -chdir=terraform/cloudflared validate",
-        "terraform/cloudflared/tf.sh plan"
+        "terraform/cloudflared/tf.sh plan mesh",
+        "terraform/cloudflared/tf.sh plan dns"
       ],
       "evidence": [
         {
@@ -232,10 +252,60 @@
           "date": "2026-06-02",
           "command": "./init.sh",
           "result": "passed with disabled-by-default mesh route scaffold; no Cloudflare plan or apply was run."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "terraform/cloudflared/mesh.tf repair",
+          "result": "removed invalid data block nested inside locals; homelab_reverse_proxy tunnel_id now uses var.homelab_tunnel_id."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "terraform/cloudflared/variables.tf",
+          "result": "added enable_public_dns; removed invalid op:// defaults from office_tunnel_id and cloudflare_tunnel_virtual_network_id."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "terraform/cloudflared/main.tf",
+          "result": "DNS and zone_setting resources gated with count on enable_public_dns."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "terraform/cloudflared/tf.sh",
+          "result": "phased mesh|dns|all; CLI -var loads tunnel IDs from op://d3HLPRV/cf-zerotrust-d3hl.site/ (field names only in repo)."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "./init.sh",
+          "result": "passed after phased rollout changes."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "Cloudflare API DNS list",
+          "result": "no apex or wildcard A records; portal.d3hl.site CNAME unchanged; zone TLS settings already match targets."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "terraform/cloudflared/tf.sh plan (workspace mesh off)",
+          "result": "5 to add DNS/zone only. HCP runs run-z4tZFz3cbrGkduPZ, run-ihz7ExvvnjXDZcry."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "terraform plan -var mesh",
+          "result": "9 to add (4 mesh routes + 5 DNS/zone). HCP run run-4raRpaQxTuVC3Qbc."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "terraform/cloudflared/tf.sh plan mesh",
+          "result": "4 to add: homelab_vmgmt, homelab_vsvc, homelab_vlab, office_vlan101. No apply run."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "docs/hcp-terraform-setup.md",
+          "result": "phased apply table, enable_public_dns, DNS pre-apply notes."
         }
       ],
-      "testedAt": "2026-06-02",
-      "nextStep": "Input HCP Terraform organization/workspace variables, Homelab tunnel ID, Office tunnel ID, virtual network decision, and confirmation whether vlab is subnet 10.10.50.0/24 or host-only 10.10.50.50/32."
+      "testedAt": "2026-06-03",
+      "nextStep": "Codex approval then ./tf.sh apply mesh; ./tf.sh plan dns (expect 5 to add); align HCP enable_public_dns=true for phase 2; ./tf.sh apply dns after approval. Confirm homelab_vlab_route if still open."
     },
     {
       "id": "CF-01-HCP-TERRAFORM-PREP",
@@ -273,10 +343,15 @@
           "date": "2026-06-02",
           "command": "./init.sh",
           "result": "passed after adding HCP Terraform prep; sandboxed run required escalation for Terraform registry access and provider schema validation."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "docs/hcp-terraform-setup.md",
+          "result": "phased apply (mesh then dns), enable_public_dns variable, DNS pre-apply check documented."
         }
       ],
-      "testedAt": "2026-06-02",
-      "nextStep": "Copy cloud.tf.example to cloud.tf after HCP organization/workspace input is supplied, then run terraform login and terraform init."
+      "testedAt": "2026-06-03",
+      "nextStep": "Complete. Align HCP workspace vars with phased rollout before UI apply."
     },
     {
       "id": "CF-01-REVERSE-PROXY-TERRAFORM",
@@ -315,10 +390,15 @@
           "date": "2026-06-02",
           "command": "./init.sh",
           "result": "passed with disabled-by-default reverse-proxy ingress scaffold; no Cloudflare plan or apply was run."
+        },
+        {
+          "date": "2026-06-03",
+          "command": "Cloudflare API DNS list",
+          "result": "apex/wildcard A conflict check done for phase-2 public DNS; no conflict; portal CNAME not managed by Terraform."
         }
       ],
-      "testedAt": "2026-06-02",
-      "nextStep": "Collect public hostnames, origin service URLs, and Access policy requirements for each local resource."
+      "testedAt": "2026-06-03",
+      "nextStep": "Collect public hostnames, origin service URLs, and Access policy requirements for each local resource. Phase-2 ./tf.sh apply dns is separate from reverse-proxy ingress."
     },
     {
       "id": "CF-01-SECRETS-DOCS",
@@ -338,9 +418,15 @@
         "rg -n \"(token|secret|password|credential)\" docs terraform README.md AGENTS.md",
         "./init.sh"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "date": "2026-06-03",
+          "command": "terraform/cloudflared/tf.sh and docs/hcp-terraform-setup.md",
+          "result": "op:// paths documented by item/field name only (cf-zerotrust-d3hl.site tunnel fields, Terraform token item); full docs/1password-secrets.md not yet created."
+        }
+      ],
       "testedAt": "",
-      "nextStep": "Create docs/1password-secrets.md only when Cloudflare token references are intentionally wired."
+      "nextStep": "Create docs/1password-secrets.md consolidating op:// paths for Cloudflare and Zero Trust items."
     }
   ]
 }

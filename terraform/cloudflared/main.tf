@@ -17,6 +17,7 @@ provider "cloudflare" {
 }
 
 resource "cloudflare_dns_record" "wildcard" {
+  count   = var.enable_public_dns ? 1 : 0
   zone_id = var.zone_id
   name    = "*"
   content = var.wan_ip
@@ -24,7 +25,9 @@ resource "cloudflare_dns_record" "wildcard" {
   ttl     = 1
   proxied = true
 }
+
 resource "cloudflare_dns_record" "host" {
+  count   = var.enable_public_dns ? 1 : 0
   zone_id = var.zone_id
   name    = var.domain
   content = var.wan_ip
@@ -33,22 +36,22 @@ resource "cloudflare_dns_record" "host" {
   proxied = true
 }
 
-# Enable TLS 1.3
 resource "cloudflare_zone_setting" "tls_1_3" {
+  count      = var.enable_public_dns ? 1 : 0
   zone_id    = var.zone_id
   setting_id = "tls_1_3"
   value      = "on"
 }
 
-# Enable automatic HTTPS rewrites
 resource "cloudflare_zone_setting" "automatic_https_rewrites" {
+  count      = var.enable_public_dns ? 1 : 0
   zone_id    = var.zone_id
   setting_id = "automatic_https_rewrites"
   value      = "on"
 }
 
-# Set SSL mode to strict
 resource "cloudflare_zone_setting" "ssl" {
+  count      = var.enable_public_dns ? 1 : 0
   zone_id    = var.zone_id
   setting_id = "ssl"
   value      = "strict"

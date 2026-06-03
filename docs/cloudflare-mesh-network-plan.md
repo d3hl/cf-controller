@@ -1,6 +1,6 @@
 # Cloudflare Mesh Network Plan
 
-Last Updated: 2026-06-02
+Last Updated: 2026-06-03
 
 ## Goal
 
@@ -10,7 +10,7 @@ This is a planning and input-configuration artifact. It does not authorize live 
 
 Current implementation status: `terraform/cloudflared/mesh.tf` contains disabled-by-default Terraform scaffolding for the private routes and Homelab reverse-proxy tunnel config. No resources are created until the enable flags and required IDs are supplied.
 
-HCP Terraform preparation lives in `docs/hcp-terraform-setup.md` and `terraform/cloudflared/cloud.tf.example`. Copy the example to `cloud.tf` only after choosing the HCP Terraform organization/workspace and workspace variable values.
+HCP Terraform is active: `terraform/cloudflared/cloud.tf` (org `ncdv`, workspace `cf-controller-cloudflared`). See `docs/hcp-terraform-setup.md`. Mesh routes are implemented in `mesh.tf` but disabled until tunnel IDs and `enable_mesh_private_routes` are set in workspace variables.
 
 ## Context7 Source Check
 
@@ -32,15 +32,15 @@ Keep the current repo workflow: static `fmt`, `init -backend=false`, and `valida
 Authoritative Proxmox SDN state lives in `/home/d3/Github/d3hl-managed-proxmox`.
 
 | Network | Requested input | Planned route | Notes |
-|---|---:|---:|---|
+| --- | ---: | ---: | --- |
 | `vmgmt` | `10.10.10.0/24` | `10.10.10.0/24` | Proxmox management; FortiGate gateway is `10.10.10.2`. |
-| `vsvc` | `10.10.30.0/24` | `10.10.30.0/24` | User request spelled this as `vsvs`; repo uses `vsvc`. |
-| `vlab` | `10.10.50.50/24` | `10.10.50.0/24` | `10.10.50.50/24` is a host address inside the routed `vlab` subnet. Route the subnet unless a host-only `/32` route is explicitly requested. |
+| `vsvc` | `10.10.30.0/24` | `10.10.30.0/24` | VM subnet, Fortigate gateway is `10.10.30.2` |
+| `vlab` | `10.10.50.0/24` | `10.10.50.0/24` | Guest subnet, Fortigate gateway is `10.10.50.2` |
 
 ### Site B: Office
 
 | Network | Planned route | Notes |
-|---|---:|---|
+| --- | ---: | --- |
 | VLAN 101 | `10.203.1.0/24` | Office-side route; requires an Office connector/tunnel and local routing/firewall validation. |
 
 ## Target Architecture
@@ -109,7 +109,7 @@ DNS records for public hostnames should be reviewed during implementation. Do no
 Fill this before Terraform implementation:
 
 | Public hostname | Site | Origin service | Access policy needed | Notes |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | TBD | Homelab | TBD | TBD | Candidate local resources must be named before config is generated. |
 
 ## Agent Assignment
@@ -132,11 +132,14 @@ terraform -chdir=terraform/cloudflared init -backend=false -input=false
 terraform -chdir=terraform/cloudflared validate
 ```
 
-Credentialed plan, only after inputs are complete:
+Credentialed plan, only after inputs are complete (phased: mesh first, then DNS):
 
 ```bash
 cd /home/d3/Github/cf-controller/terraform/cloudflared
-./tf.sh plan
+./tf.sh plan mesh   # 4 private routes
+./tf.sh apply mesh  # after Codex approval
+./tf.sh plan dns    # 5 DNS/zone resources; mesh stays enabled in config
+./tf.sh apply dns   # after Codex approval
 ```
 
 Live validation after approved apply:

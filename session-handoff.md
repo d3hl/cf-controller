@@ -1,75 +1,79 @@
 # cf-controller Session Handoff
 
-Last Updated: 2026-06-02
+Last Updated: 2026-06-03
+
+## Active Feature
+
+`CF-01-MESH-S2S-TERRAFORM` (in progress). Also open: `CF-01-REVERSE-PROXY-TERRAFORM`, `CF-01-SECRETS-DOCS` (pending).
 
 ## Current Objective
 
-Continue `CF-01-MESH-S2S-TERRAFORM`: user will input HCP Terraform organization/workspace and workspace variables, then complete Cloudflare private-route Terraform after Homelab/Office tunnel IDs, virtual network choice, and vlab route scope are confirmed.
+Phased apply — **mesh first, then DNS** — after Codex approval per `docs/multi-agent-cloudflare-contract.md`:
+
+1. `./tf.sh apply mesh` — 4 private routes
+2. `./tf.sh plan dns` then `./tf.sh apply dns` — 5 DNS/zone resources (keep mesh flags **true** in HCP)
+
+Confirm `homelab_vlab_route` (`10.10.50.0/24` vs `/32`) before mesh apply if still open.
 
 ## Current State
 
-- `cf-controller` owns Cloudflare/controller Terraform automation.
-- The shared workspace contract is in `agent-contract-master/AGENTS.md`.
-- `claude-progress.md` is the canonical progress log for this repo.
-- `CF-01-HARNESS` is complete.
-- `CF-01-MULTI-AGENT-CLOUDFLARE` is complete; use `docs/multi-agent-cloudflare-contract.md` for Codex/Composer/DeepSeek ownership.
-- `CF-01-TF-BASELINE` is complete; `./init.sh` is the safe non-live baseline.
-- `CF-01-MESH-S2S-PLAN` is complete; use `docs/cloudflare-mesh-network-plan.md` for the Homelab/Office route and reverse-proxy plan.
-- `CF-01-HCP-TERRAFORM-PREP` is complete; use `docs/hcp-terraform-setup.md` and `terraform/cloudflared/cloud.tf.example`.
-- `CF-01-MESH-S2S-TERRAFORM` and `CF-01-REVERSE-PROXY-TERRAFORM` are in progress with disabled-by-default Terraform scaffold in `terraform/cloudflared/mesh.tf`.
-- `./init.sh` now runs Terraform fmt, init without backend, and validate for `terraform/cloudflared`.
+- HCP Terraform: org `ncdv`, workspace `cf-controller-cloudflared` (`terraform/cloudflared/cloud.tf`).
+- Phased rollout: `enable_public_dns` gates `main.tf`; `./tf.sh [plan|apply] [mesh|dns|all]`.
+- Tunnel UUIDs for plans: 1Password `cf-zerotrust-d3hl.site` fields `Tunnel sg-hl-mesh`, `Tunnel sg-corp-mesh` (loaded via `tf.sh` `-var`, not committed).
+- DNS pre-check done: no apex/wildcard A; `portal.d3hl.site` CNAME untouched; zone TLS already at target values.
+- **No `terraform apply` run yet** — credentialed plans only.
+- `./init.sh` passes.
 
-## Files
+## Files to Read First
 
-- `AGENTS.md`
-- `feature_list.json`
-- `claude-progress.md`
-- `session-handoff.md`
-- `init.sh`
-- `docs/multi-agent-cloudflare-contract.md`
-- `docs/cloudflare-mesh-network-plan.md`
-- `docs/hcp-terraform-setup.md`
-- `terraform/cloudflared/cloud.tf.example`
-- `terraform/cloudflared/mesh.tf`
-- `terraform/cloudflared/variables.tf`
+| File | Why |
+|------|-----|
+| `claude-progress.md` | Full evidence table and mesh route matrix |
+| `feature_list.json` | Feature status and `nextStep` |
+| `docs/hcp-terraform-setup.md` | HCP vars + phased apply table |
+| `docs/cloudflare-mesh-network-plan.md` | Route design and live validation gates |
+| `terraform/cloudflared/tf.sh` | Phased plan/apply entrypoint |
 
-## Verification Evidence
+## Verification Evidence (2026-06-03)
 
-- 2026-06-02: pre-repair `./init.sh` failed due obsolete Python workflow.
-- 2026-06-02: repaired `./init.sh` initially failed on Terraform formatting; `terraform/cloudflared/variables.tf` was corrected.
-- 2026-06-02: repaired `./init.sh` passed with Terraform v1.15.5.
-- 2026-06-02: harness validator passed with 92/100.
-- 2026-06-02: Cloudflare multi-agent contract added; post-change `./init.sh` passed after Terraform registry network escalation.
-- 2026-06-02: Explicit Terraform checks passed: `fmt -check -diff`, `init -backend=false -input=false` with registry network escalation, and `validate` with provider plugin escalation.
-- 2026-06-02: `feature_list.json` JSON validation passed and changed-file plaintext secret scan had no matches.
-- 2026-06-02: Context7 confirmed Cloudflare Terraform provider resources for tunnels, tunnel config ingress, private CIDR routes, virtual networks, hostname routes, and DNS records.
-- 2026-06-02: `docs/cloudflare-mesh-network-plan.md` created with Homelab routes `10.10.10.0/24`, `10.10.30.0/24`, `10.10.50.0/24`, Office route `10.203.1.0/24`, reverse-proxy input matrix, and validation gates.
-- 2026-06-02: Context7 confirmed HCP Terraform cloud block and workspace variable setup.
-- 2026-06-02: HCP Terraform prep added with `terraform/cloudflared/cloud.tf.example` and `docs/hcp-terraform-setup.md`.
-- 2026-06-02: Disabled-by-default Terraform scaffold added for Homelab/Office private routes and Homelab reverse-proxy ingress.
-- 2026-06-02: `./init.sh` passed after HCP/scaffold changes; sandboxed run required escalation for Terraform registry access and provider schema validation.
+| Command | Result |
+|---------|--------|
+| `./init.sh` | Passed (incl. after `enable_public_dns` + phased `tf.sh`) |
+| `./tf.sh plan` | **5 to add** (mesh off in HCP workspace). Runs: `run-z4tZFz3cbrGkduPZ`, `run-ihz7ExvvnjXDZcry` |
+| `terraform plan` + mesh `-var` | **9 to add**. Run: `run-4raRpaQxTuVC3Qbc` |
+| `./tf.sh plan mesh` | **4 to add** — vmgmt, vsvc, vlab, office_vlan101 only |
+| Cloudflare API DNS list | No apex/wildcard A conflict |
+
+## HCP Workspace (UI apply)
+
+| Phase | `enable_mesh_private_routes` | `enable_public_dns` | Tunnel IDs |
+|-------|------------------------------|---------------------|------------|
+| 1 — mesh | `true` | `false` | From 1Password or set in workspace |
+| 2 — DNS | **`true`** (required) | `true` | unchanged |
+
+CLI `./tf.sh` passes `-var` so plans work even when workspace tfvars are stale.
 
 ## Blockers
 
-- No harness blocker known.
-- Credentialed Cloudflare plan/apply work requires 1Password and Cloudflare credentials and is intentionally outside default `./init.sh`.
-- `CF-01-MESH-S2S-TERRAFORM` needs Homelab tunnel ID, Office tunnel ID, virtual network decision, and confirmation whether requested `vlab` `10.10.50.50/24` means subnet `10.10.50.0/24` or host-only `10.10.50.50/32`.
-- `CF-01-REVERSE-PROXY-TERRAFORM` needs public hostnames, origin services, and Access policy requirements.
-- HCP Terraform activation needs user-supplied organization/workspace. Do not copy `cloud.tf.example` to `cloud.tf` or migrate state until those inputs are confirmed.
-
-## Risks
-
-- `terraform/cloudflared/tfplan` is tracked existing state; do not modify it during harness-only work.
-- Do not commit local `*.tfvars`, API tokens, tunnel secrets, or `.env` files.
+- Apply blocked on Codex approval (no apply yet).
+- HCP workspace may still disable mesh / omit tunnel IDs — use `./tf.sh` phases or align vars before UI apply.
+- Reverse proxy: hostnames/origins not approved (`enable_homelab_reverse_proxy=false`).
+- HCP undeclared tfvars: `virtual_environment_*` (cleanup recommended).
 
 ## Next Session
-
-Recommended Next Step: input HCP Terraform organization/workspace and workspace variables using `docs/hcp-terraform-setup.md`, then run `./init.sh` and continue `CF-01-MESH-S2S-TERRAFORM` from `feature_list.json`.
-For multi-agent Cloudflare work, start with Codex design, pass approved configuration review/implementation to Composer, then pass verification to DeepSeek before Codex final approval.
-
-Start command:
 
 ```bash
 cd /home/d3/Github/cf-controller
 ./init.sh
+cd terraform/cloudflared
+
+./tf.sh plan mesh    # expect 4 to add
+# After Codex approval:
+./tf.sh apply mesh
+
+./tf.sh plan dns     # expect 5 to add (after mesh in state)
+# After Codex approval:
+./tf.sh apply dns
 ```
+
+Live checks after apply: `docs/cloudflare-mesh-network-plan.md` validation gates.

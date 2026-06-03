@@ -26,10 +26,16 @@ variable "wan_ip" {
   default = ""
 }
 
+variable "enable_public_dns" {
+  type        = bool
+  description = "Create apex/wildcard DNS records and zone TLS settings. Keep false for phase-1 mesh-only apply."
+  default     = false
+}
+
 variable "enable_mesh_private_routes" {
   type        = bool
   description = "Create Cloudflare Zero Trust private routes for the Homelab and Office mesh when tunnel IDs are supplied."
-  default     = false
+  default     = true
 }
 
 variable "homelab_tunnel_id" {

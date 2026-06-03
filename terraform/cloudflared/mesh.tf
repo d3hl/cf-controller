@@ -26,12 +26,6 @@ locals {
     }
   }
 
-data "onepassword_item" "cf-zerotrust-d3hl.site" {
-  vault = var.onepassword_vault
-  title = "cf-zerotrust-d3hl.site"
-}
-
-
   enabled_mesh_private_routes = {
     for name, route in local.mesh_private_routes : name => route
     if route.enabled
@@ -57,7 +51,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "homelab_reverse_prox
   count = var.enable_homelab_reverse_proxy && var.homelab_tunnel_id != "" && length(var.homelab_reverse_proxy_ingress) > 0 ? 1 : 0
 
   account_id = var.account_id
-  tunnel_id  = data.onepassword_item.cf-zerotrust-d3hl.site.item.uuid
+  tunnel_id  = var.homelab_tunnel_id
   source     = "cloudflare"
 
   config = {

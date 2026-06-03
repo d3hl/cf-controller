@@ -1,10 +1,12 @@
 # HCP Terraform Setup
 
-Last Updated: 2026-06-02
+Last Updated: 2026-06-03
 
-Use this guide to move `terraform/cloudflared` to an HCP Terraform CLI-driven workspace when the organization and workspace names are ready.
+Use this guide for the HCP Terraform CLI-driven workspace backing `terraform/cloudflared`.
 
-This setup is intentionally not active yet. `terraform/cloudflared/cloud.tf.example` must be copied to `cloud.tf` and filled in before HCP Terraform runs are enabled.
+**Active workspace (2026-06-03):** organization `ncdv`, workspace `cf-controller-cloudflared` in `terraform/cloudflared/cloud.tf`. Run `terraform init` in that directory before the first credentialed plan.
+
+`terraform/cloudflared/cloud.tf.example` remains a template for new environments.
 
 ## Context7 Source Check
 
@@ -74,10 +76,11 @@ Set these as HCP Terraform workspace variables. Mark sensitive values as sensiti
 | `account_id` | no | yes | Cloudflare account ID. |
 | `zone_id` | no | yes | Cloudflare zone ID for `domain`. |
 | `domain` | no | yes | Example: `d3hl.site`. |
-| `wan_ip` | no | yes for current DNS resources | Current Terraform uses it for wildcard and apex A records. |
-| `enable_mesh_private_routes` | no | when implementing mesh routes | Keep `false` until tunnel IDs are confirmed. |
-| `homelab_tunnel_id` | no | when implementing mesh routes or reverse proxy | Existing Homelab Cloudflare Tunnel UUID. |
-| `office_tunnel_id` | no | when implementing Office route | Existing Office Cloudflare Tunnel UUID. |
+| `wan_ip` | no | yes for phase-2 DNS | Required when `enable_public_dns = true`. |
+| `enable_public_dns` | no | phase 2 only | Keep `false` until mesh routes are applied. Phase 2 sets `true` for apex/wildcard + zone settings. |
+| `enable_mesh_private_routes` | no | phase 1 | Set `true` for mesh. `tf.sh` passes `-var` from 1Password (`cf-zerotrust-d3hl.site`: `Tunnel sg-hl-mesh`, `Tunnel sg-corp-mesh`) so CLI runs are not blocked by stale workspace tfvars. |
+| `homelab_tunnel_id` | no | when implementing mesh routes or reverse proxy | Homelab tunnel UUID (`sg-hl-mesh` in 1Password). |
+| `office_tunnel_id` | no | when implementing Office route | Office tunnel UUID (`sg-corp-mesh` in 1Password). |
 | `cloudflare_tunnel_virtual_network_id` | no | optional | Set only when a non-default virtual network is required. |
 | `homelab_vlab_route` | no | optional | Default is `10.10.50.0/24`; use `10.10.50.50/32` only for host-only routing. |
 | `enable_homelab_reverse_proxy` | no | when implementing reverse proxy | Keep `false` until ingress entries are approved. |
@@ -123,6 +126,25 @@ terraform -chdir=terraform/cloudflared plan
 ```
 
 Do not run `terraform apply` until Codex has reviewed Composer implementation output and DeepSeek verification evidence.
+
+## Phased apply (mesh first, then DNS)
+
+| Phase | HCP / tfvars | Command | Expected plan |
+|-------|----------------|---------|-----------------|
+| 1 — mesh | `enable_mesh_private_routes=true`, `enable_public_dns=false`, tunnel IDs set | `./tf.sh plan mesh` then `./tf.sh apply mesh` | **4 to add** — private routes only |
+| 2 — DNS | `enable_public_dns=true`, keep mesh flags **true** (do not disable mesh or routes will be destroyed) | `./tf.sh plan dns` then `./tf.sh apply dns` | **5 to add** — DNS + zone settings |
+
+After phase 1, set `enable_public_dns=true` in the HCP workspace before phase-2 UI apply, or use `./tf.sh apply dns` from the CLI.
+
+## 2026-06-03 plan notes
+
+- Remote plan with mesh flags disabled: **5 to add** (wildcard + apex `cloudflare_dns_record`, three `cloudflare_zone_setting` resources). No mesh routes in plan until `enable_mesh_private_routes = true` and tunnel IDs are set.
+- Remote plan with mesh `-var` from `tf.sh`: **9 to add** (4 `cloudflare_zero_trust_tunnel_cloudflared_route` + 5 DNS/zone). HCP workspace tfvars can disable mesh unless CLI `-var` is used.
+- Remove undeclared HCP workspace variables (`virtual_environment_username`, `virtual_environment_api_token`, and similar) or add matching `variable` blocks to silence warnings.
+
+## DNS pre-apply check (2026-06-03)
+
+Live zone `d3hl.site` had **no** apex or wildcard **A** records (safe to create). Existing records: `portal.d3hl.site` CNAME → `gateway.agents.cloudflare.com` (unchanged by this stack); apex TXT for domain verification. Zone settings `ssl`, `tls_1_3`, and `automatic_https_rewrites` already match Terraform targets — apply will adopt them into state, not change live values.
 
 ## Do Not Commit
 
