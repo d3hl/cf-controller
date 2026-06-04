@@ -90,7 +90,7 @@ Set these as HCP Terraform workspace variables. Mark sensitive values as sensiti
 
 | Name | Sensitive | Required now | Notes |
 |---|---:|---:|---|
-| `CLOUDFLARE_API_TOKEN` | yes | yes | Cloudflare provider API token. Use a least-privilege token for DNS, zone settings, Zero Trust tunnels, and private routes. |
+| `CLOUDFLARE_API_TOKEN` | yes | yes | Cloudflare provider API token (workspace **environment variable**). Required for remote apply; `tf.sh` also sets `TF_VAR_CLOUDFLARE_API_TOKEN` for CLI-driven runs. Least-privilege: DNS, zone settings, Zero Trust tunnels, private routes. |
 
 ## Reverse Proxy Variable Example
 

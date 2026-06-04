@@ -14,6 +14,7 @@ provider "onepassword" {
   service_account_token = var.SERVICE_ACCOUNT_TOKEN
 }
 provider "cloudflare" {
+  api_token = var.CLOUDFLARE_API_TOKEN
 }
 
 resource "cloudflare_dns_record" "wildcard" {

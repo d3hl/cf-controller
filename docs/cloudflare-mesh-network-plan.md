@@ -33,7 +33,7 @@ Authoritative Proxmox SDN state lives in `/home/d3/Github/d3hl-managed-proxmox`.
 
 | Network | Requested input | Planned route | Notes |
 | --- | ---: | ---: | --- |
-| `vmgmt` | `10.10.10.0/24` | `10.10.10.0/24` | Proxmox management; FortiGate gateway is `10.10.10.2`. |
+| `vmgmt` | `10.10.10.0/24` | `10.10.10.0/24` | Proxmox management; FortiGate gateway is `10.10.10.2` |
 | `vsvc` | `10.10.30.0/24` | `10.10.30.0/24` | VM subnet, Fortigate gateway is `10.10.30.2` |
 | `vlab` | `10.10.50.0/24` | `10.10.50.0/24` | Guest subnet, Fortigate gateway is `10.10.50.2` |
 
