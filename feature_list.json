@@ -302,10 +302,35 @@
           "date": "2026-06-03",
           "command": "docs/hcp-terraform-setup.md",
           "result": "phased apply table, enable_public_dns, DNS pre-apply notes."
+        },
+        {
+          "date": "2026-06-04",
+          "command": "terraform/cloudflared/tf.sh apply mesh",
+          "result": "HCP run-16bhzLnFCB7nkRMs: 4 private routes added."
+        },
+        {
+          "date": "2026-06-04",
+          "command": "terraform/cloudflared/tf.sh apply dns",
+          "result": "HCP run-JTNZStKsdHfss3kH: 2 DNS records added (apex, wildcard); split DNS token."
+        },
+        {
+          "date": "2026-06-04",
+          "command": "terraform/cloudflared/tf.sh import zone-settings",
+          "result": "Imported ssl, tls_1_3, automatic_https_rewrites; plan zone-settings no changes (run-FTHCtyxKdzJjKCKo)."
+        },
+        {
+          "date": "2026-06-04",
+          "command": "Cloudflare API validation",
+          "result": "4 teamnet routes and apex/wildcard A records confirmed live."
+        },
+        {
+          "date": "2026-06-04",
+          "command": "terraform/cloudflared/tf.sh plan verify",
+          "result": "No changes; full stack drift check."
         }
       ],
-      "testedAt": "2026-06-03",
-      "nextStep": "Codex approval then ./tf.sh apply mesh; ./tf.sh plan dns (expect 5 to add); align HCP enable_public_dns=true for phase 2; ./tf.sh apply dns after approval. Confirm homelab_vlab_route if still open."
+      "testedAt": "2026-06-04",
+      "nextStep": "Run Homelab/Office site-to-site probes per docs/cloudflare-mesh-network-plan.md; then mark complete or open CF-01-REVERSE-PROXY-TERRAFORM."
     },
     {
       "id": "CF-01-HCP-TERRAFORM-PREP",
